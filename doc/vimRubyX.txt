@@ -90,7 +90,15 @@ VIM::singleton_method_added
 	echo RubyAdd(1,1)
 <
 	will return 2
-	
+							*ruby-enhanced-command*
+							*ruby-<<*
+VIM::<<
+	This is an enhanced version of the VIM::command method, this command
+	can take multiline commands such as |:function| definitions |:insert|, 
+	|:append| and constructs such as |:if| etc.
+>
+	:ruby VIM << "insert toto est bo \n tata est la \n tutu a bu\n."
+<							
 							*vim-from-ruby*
 							*ruby-method_missing*
 VIM::method_missing
@@ -110,5 +118,22 @@ VIM::method_missing
 	ruby p VIM::HelloFromVim
 <
 
+							*EvalRb*
+							*vim-ruby-interactive*
+:EvalRb
+	the EvalRb command starts an interactive ruby session within
+	vim, this allows the user to evaluate ruby statements
+	interactively in the vim-embedded ruby interpreter, this is
+	often very helpfull for debugging and testing purposes.
+	here is an example which makes a hash structure available for
+	VIM.
+>
+	:EvalRb
+	ruby>  puts 'oto'
+	oto
+	ruby> class Test	
+	ruby |end
+	ruby>exit
+		
 ==============================================================================
  vim:tw=78:ts=8:ft=help:norl:
