@@ -1,0 +1,7 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=248
+
+Enhancements to the VIM-Ruby interface.
+This allows you to easily define and call vim functions from ruby.
+Calling is done as if all the vim user defined and built in functions were
+methods on the VIM module
+Defining is done by adding a new method to the VIM module.

@@ -1,0 +1,114 @@
+*vimRubyX.txt*   For Vim version 6.0.
+
+
+
+Enhancements to the ruby interface for vim		       *rubyX* *RubyX*
+
+The Ruby interface only works when Vim was compiled with the |+ruby| feature.
+
+For MS-Windows you might find a Ruby library here:
+
+	http://www.dm4lab.to/~usa/ruby_en.html
+
+This file is a pure ruby file which adds additional functionalities to the
+vim-ruby interface and makes it easier to use.
+
+Installation:						*rubyX-install*
+the vimRubyX plugin is actually a ruby module. But since it is only usefull
+from vim and for more convenience it is packaged as a vim plugin. To install
+it just unzip the package in a directory in your runtime view and run
+|:helptags| on the appropriate doc directory.
+
+==============================================================================
+Enhancements:
+
+Ruby code gets all of its access to vim via the "VIM" module.  This plugin
+adds some new functionalities to the VIM modules
+
+NOTE: the following examples use the ruby here document syntax, this means
+that the EORUBY markers will need to be at the start of the line for them to 
+work, for technical reason it is not possible to do this in the actual
+example, just pretend as if they were not indented.
+    
+
+							*ruby-from-vim*
+							*ruby-singleton_method_added*
+VIM::singleton_method_added
+	This ruby system hook is implemented so if a new method is added to the
+       	VIM module as in:
+	
+>
+	ruby << EORUBY
+	def VIM.HelloFromRuby
+		p "hello from ruby"
+		return "ruby function callable from vim"
+	end
+	EORUBY
+<
+	it will be automatically added as a vim user defined function (this
+	means the first letter needs to be capitalized).
+	see |:function|.
+	
+>
+	echo HelloFromRuby()
+<
+	Attention this is a ruby system hook and is not meant to be called
+	directly from ruby, it will be automatically called when you define
+	the new method on the VIM module.
+
+	The argument arity of the ruby function is preserved:
+>
+	ruby << EORUBY
+	def VIM.RubyConcat(a,b,*c)
+    		a+b+c.join
+	end
+	EORUBY
+<	
+	will mean a RubyConcat user defined function with 2 mandatory
+	arguments and optionally some more arguments will be defined.
+	the actual VIM signature for the defined function is:
+
+>
+	function RubyConcat(a0, a1, ...)
+<
+	this function can be called like a normal vim function.  Beware
+	though, all vim arguments will be passed to ruby as strings therefore
+>
+	echo '.'.RubyConcat(1,2,"toto", 'tutu').'.'
+<	
+	prints .12tototutu. and not 3tototutu or an error.  To pass integer
+	arguments, you will need to do your own marshalling:
+>
+	ruby << EORUBY
+	def VIM.RubyAdd(a,b)
+    		a.to_i()+b.to_i()
+	end
+	EORUBY
+<	
+	will add the two parameters and 
+>
+	echo RubyAdd(1,1)
+<
+	will return 2
+	
+							*vim-from-ruby*
+							*ruby-method_missing*
+VIM::method_missing
+	This ruby system hook is implemented so if an undefined method is
+	called on the VIM module it is assumed to be a VIM builtin or user
+	defined function and a function with the appropriate name is looked
+	for and called.
+>
+	ruby p VIM::fnamemodify('/toto/titi', ':p:h')
+<
+	automatically calls the builtin |fnamemodify| function
+>
+	function HelloFromVim()
+		echo 'Hello From Vim'
+		return 'vim function callable from ruby'
+	endfunction
+	ruby p VIM::HelloFromVim
+<
+
+==============================================================================
+ vim:tw=78:ts=8:ft=help:norl:
