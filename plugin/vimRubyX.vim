@@ -21,8 +21,8 @@ module VIM
 			evaluate("input('#{input}')")
 		end
 
-		def puts(input)
-			command("echo '#{input}'")
+        def puts(*inputs)
+            inputs.each { |input|  command("echo '#{input.to_s}'")} 
 		end
 
 		def get_args(arity, vararg)
@@ -51,9 +51,9 @@ module VIM
 		end
 
 		def method_missing(id, *argv)
-			#puts %q(method missing ) + id.to_s
+			puts %q(method missing ) + id.to_s if (defined?($vimRubyDebug) && $vimRubyDebug)
 			VIM::Restricted[id] = true
-			#puts "VIM::Restricted #{VIM::Restricted.inspect}" 
+			#puts "VIM::Restricted #{VIM::Restricted.inspect}"
 			#evaluate('input("waiting")')
 			methodName = id.id2name
 			raise NameError, %Q(can't find method #{methodName}) unless VIM::evaluate(%Q[exists('*#{methodName}')])
@@ -63,7 +63,7 @@ module VIM
 			end
 			EOEVAL
 			eval deffunc
-			#puts "method added " + id.to_s + " as " + deffunc
+			puts "method added " + id.to_s + " as " + deffunc if (defined?($vimRubyDebug) && $vimRubyDebug)
 			send(methodName, *argv)
 		end
 
@@ -89,7 +89,7 @@ module VIM
 			end
 			args = args.join(',')
 
-			#  puts "adding function #{methodName}(#{args}) in vim"
+			puts "adding function #{methodName}(#{args}) in vim" if (defined?($vimRubyDebug) && $vimRubyDebug)
 			if arity == 0
 				vimfunc = <<-EOF
 					function! #{methodName}(#{args})
@@ -111,62 +111,70 @@ module VIM
 					endfunction
 				EOF
 			end
-			#p vimfunc
+			p vimfunc if (defined?($vimRubyDebug) && $vimRubyDebug)
 			VIM << vimfunc
 		end
 
 		def Eval_rb()
-			line = ''
-			indent=0
-			$stdout.sync = TRUE
-			lInput =  "ruby> "
-			while TRUE
-				l = gets(lInput)
-				unless l
-					break if line == ''
-				else
-					line = line + "\n" + l 
-					case l
-						when /,\s*$/
-							lInput =  "ruby| "
-							next
-						when /^\s*(class|module|def|if|unless|case|while|until|for|begin)\b/
-							indent += 1
+            begin
+                line = ''
+                indent=0
+                $stdout.sync = TRUE
+                lInput =  "ruby> "
+                while TRUE
+                    l = gets(lInput)
+                    unless l
+                        break if line == ''
+                    else
+                        line = line + "\n" + l 
+                        case l
+                            when /,\s*$/
+                                lInput =  "ruby| "
+                                next
+                            when /^\s*(class|module|def|if|unless|case|while|until|for|begin)\b/
+                                indent += 1
 
-						when /^\s*end\b/
-							indent -= 1
+                            when /^\s*end\b/
+                                indent -= 1
 
-						when /\{\s*(\|.*\|)?\s*$/
-							indent += 1
+                            when /\{\s*(\|.*\|)?\s*$/
+                                indent += 1
 
-						when /^\s*\}/
-							indent -= 1
-						when /^\s*exit\b/
-							break
-					end
-					if indent > 0
-						puts "\n"
-						lInput =  "ruby| "
-						next
-					end
-				end
-				begin
-					puts "\n"
-					puts  eval(line).inspect
-				rescue ScriptError, StandardError, NameError
-					$! = 'exception raised' unless $!
-					puts  "ERR: ", $!, "\n"
-					puts "while evaluating line #{line}"
-				end
+                            when /^\s*\}/
+                                indent -= 1
+                            when /^\s*exit\b/
+                                break
+                        end
+                        if indent > 0
+                            puts "\n"
+                            lInput =  "ruby| "
+                            next
+                        end
+                    end
+                    begin
+                        puts "\n"
+                        puts line if (defined?($vimRubyDebug) && $vimRubyDebug)
+                        puts  eval(line).inspect
+                    rescue ScriptError, StandardError, NameError, ArgumentError => boom
+                        puts  "ERR: ", boom, "\n"
+                        puts "while evaluating line #{line}"
+                        puts boom.backtrace
+                    end
 
-				break if not l
-				line = ''
-				lInput =  "ruby> "
-			end
-			puts "\n"
-		end
+                    break if not l
+                    line = ''
+                    lInput =  "ruby> "
+                end
+                puts "\n"
+            end
+        rescue Exception => boom
+            puts  "ERR: ", boom, "\n"
+            puts "while evaluating line #{line}"
+            puts boom.backtrace 
+        end
 	end
 end
 
-VIM << "command EvalRb call Eval_rb()"
+VIM << "command! EvalRb call Eval_rb()"
+puts "Vim Ruby support updated"   if (defined?($vimRubyDebug) && $vimRubyDebug)
 EORUBY
